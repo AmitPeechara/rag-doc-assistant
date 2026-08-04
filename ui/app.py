@@ -9,11 +9,15 @@ the raw answer text.
 """
 
 import json
-
 import requests
 import streamlit as st
+import os
 
-API_BASE = "http://localhost:8000"
+from dotenv import load_dotenv
+
+load_dotenv()
+
+API_BASE = os.environ.get("API_BASE_URL", "http://localhost:8000") 
 
 st.set_page_config(page_title="RAG Doc Assistant", layout="wide")
 st.title("RAG Documentation Assistant")
