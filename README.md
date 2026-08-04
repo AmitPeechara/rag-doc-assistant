@@ -81,6 +81,13 @@ default `add()` behavior silently skips duplicate IDs rather than erroring or up
 before the answer begins streaming - the UI can show which sources were used while the
 answer is still generating, rather than only after the full response completes.
 
+**Containerized as two independent services, not one image.**
+The API and UI ship as separate Docker images (`api/Dockerfile`, `ui/Dockerfile`), each
+carrying only the dependencies it needs. They communicate over HTTP, with the UI's target
+URL controlled by an `API_BASE_URL` environment variable rather than hardcoded - the same
+image works unmodified whether run directly on a laptop, in Docker, or later in Kubernetes,
+with only the environment changing.
+
 ## Tech stack
 
 - **LLM / embeddings:** Google Gemini (`gemini-2.5-flash` for generation, `gemini-embedding-001`
@@ -90,6 +97,8 @@ answer is still generating, rather than only after the full response completes.
 - **Tokenization:** tiktoken (`cl100k_base`, used as a chunking-consistency proxy)
 - **PDF extraction:** pypdf
 - **UI:** Streamlit
+- **Containerization:** Docker (separate images for API and UI, connected via a user-defined
+  Docker network)
 
 ## API
 
@@ -101,7 +110,7 @@ answer is still generating, rather than only after the full response completes.
 | `/query` | POST | Ask a question, get a complete (non-streaming) answer |
 | `/query/stream` | POST | Ask a question, get a streamed answer with sources sent first |
 
-## Setup
+## Setup (local, no Docker)
 
 ```bash
 python3 -m venv venv
@@ -121,6 +130,45 @@ cd api && python main.py
 
 # Terminal 2
 cd ui && streamlit run app.py
+```
+
+## Running with Docker
+
+Each service has its own Dockerfile (`api/Dockerfile`, `ui/Dockerfile`), built from the
+repo root as the build context. A `.env` file with `GEMINI_API_KEY=your_key_here` is
+required in the repo root (not committed - already covered by `.gitignore`).
+
+**1. Build both images:**
+```bash
+docker build -t rag-api:v1 -f api/Dockerfile .
+docker build -t rag-ui:v1 -f ui/Dockerfile .
+```
+
+**2. Create a shared network** (so the containers can resolve each other by name instead
+of `localhost`, which only refers to a container itself):
+```bash
+docker network create rag-net
+```
+
+**3. Run the API**, publishing port 8000 to the host and loading the Gemini key from `.env`:
+```bash
+docker run -d --name rag-api --network rag-net -p 8000:8000 --env-file .env rag-api:v1
+```
+
+**4. Run the UI**, publishing port 8501 and pointing it at the API by container name:
+```bash
+docker run -d --name rag-ui --network rag-net -p 8501:8501 -e API_BASE_URL=http://rag-api:8000 rag-ui:v1
+```
+
+**5. Open the app:** `http://localhost:8501`
+
+The API is independently reachable at `http://localhost:8000/docs` (FastAPI's interactive
+docs) for standalone testing.
+
+To stop and remove both containers:
+```bash
+docker stop rag-api rag-ui
+docker rm rag-api rag-ui
 ```
 
 ## Known limitations (v1)
