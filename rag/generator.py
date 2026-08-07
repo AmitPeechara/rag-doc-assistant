@@ -10,7 +10,7 @@ from google.genai.types import GenerateContentConfig
 
 from dotenv import load_dotenv
 
-GENERATION_MODEL = "gemini-3.5-flash-lite"
+GENERATION_MODEL = "gemini-3.6-flash"
 GENERATION_TEMPERATURE = 0.1  # low - this is fact-retrieval, not creative generation
 load_dotenv()
 _gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])  # reads GEMINI_API_KEY from env

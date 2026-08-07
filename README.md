@@ -90,7 +90,7 @@ with only the environment changing.
 
 ## Tech stack
 
-- **LLM / embeddings:** Google Gemini (`gemini-2.5-flash` for generation, `gemini-embedding-001`
+- **LLM / embeddings:** Google Gemini (`gemini-3.6-flash` for generation, `gemini-embedding-001`
   for embeddings)
 - **Vector store:** ChromaDB (persistent, local)
 - **Backend:** FastAPI
